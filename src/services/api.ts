@@ -8,7 +8,7 @@ import { useAuthStore }
 export const api =
   axios.create({
     baseURL:
-      "http://192.168.29.19:3000",
+      "https://integral-backend.vercel.app",
   });
 
 api.interceptors.request.use(

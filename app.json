@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
     "android": {
       "usesCleartextTraffic": true,
+      "package" : "com.azman.integral",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#E6F4FE"
@@ -33,6 +34,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cdfb4e3c-d8b3-4093-a941-7c8f1bdc3829"
+      }
+    },
+    "owner": "azman_idrisi"
   }
 }
