@@ -1,45 +1,42 @@
-import {
-  Platform,
-  TouchableOpacity,
-} from "react-native";
-
-import { Tabs } from "expo-router";
-
 import { Ionicons } from "@expo/vector-icons";
-
+import { Tabs } from "expo-router";
+import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-
-  const tabBarHeight =
-    52 + insets.bottom;
+  const tabBarHeight = 60 + insets.bottom;
 
   return (
     <Tabs
       screenOptions={{
+        tabBarIconStyle: {
+          marginBottom: 0,
+        },
         headerShown: false,
-        tabBarActiveTintColor: "#2563eb",
-        tabBarInactiveTintColor: "#9ca3af",
+        tabBarActiveTintColor: "#1ed760",
+        tabBarInactiveTintColor: "#b3b3b3",
         tabBarStyle: {
+          paddingVertical: 0,
+          alignItems: "center",
+          justifyContent: "center",
           height: tabBarHeight,
-          paddingTop: 1,
           paddingBottom: insets.bottom,
-          backgroundColor: "#fff",
+          paddingTop: 8,
+          backgroundColor: "#181818",
           borderTopWidth: 1,
-          borderTopColor: "#e5e7eb",
-          elevation: 12,
+          borderTopColor: "#4d4d4d",
+          // heavy shadow upward
           shadowColor: "#000",
-          shadowOffset: {
-            width: 0,
-            height: -2,
-          },
-          shadowOpacity: 0.06,
-          shadowRadius: 6,
+          shadowOffset: { width: 0, height: -8 },
+          shadowOpacity: 0.5,
+          shadowRadius: 24,
+          elevation: 20,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "600",
+          fontSize: 10,
+          fontWeight: "700",
+          letterSpacing: 1.4,
           marginBottom: Platform.OS === "ios" ? 0 : 4,
         },
         tabBarItemStyle: {
@@ -57,18 +54,10 @@ export default function TabLayout() {
         }) => (
           <TouchableOpacity
             onPress={onPress}
-            onLongPress={
-              onLongPress ?? undefined
-            }
-            accessibilityLabel={
-              accessibilityLabel
-            }
-            accessibilityRole={
-              accessibilityRole
-            }
-            accessibilityState={
-              accessibilityState
-            }
+            onLongPress={onLongPress ?? undefined}
+            accessibilityLabel={accessibilityLabel}
+            accessibilityRole={accessibilityRole}
+            accessibilityState={accessibilityState}
             testID={testID}
             activeOpacity={0.65}
             style={style}
@@ -81,20 +70,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Attendance",
-          tabBarIcon: ({
-            color,
-            focused,
-          }) => (
-            <Ionicons
-              name={
-                focused
-                  ? "calendar"
-                  : "calendar-outline"
-              }
-              size={22}
-              color={color}
-            />
+          title: "ATTENDANCE",
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+              <Ionicons
+                name={focused ? "calendar" : "calendar-outline"}
+                size={20}
+                color={color}
+              />
+            </View>
           ),
         }}
       />
@@ -102,20 +86,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="timetable"
         options={{
-          title: "Timetable",
-          tabBarIcon: ({
-            color,
-            focused,
-          }) => (
-            <Ionicons
-              name={
-                focused
-                  ? "time"
-                  : "time-outline"
-              }
-              size={22}
-              color={color}
-            />
+          title: "TIMETABLE",
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+              <Ionicons
+                name={focused ? "time" : "time-outline"}
+                size={20}
+                color={color}
+              />
+            </View>
           ),
         }}
       />
@@ -123,23 +102,32 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
-          tabBarIcon: ({
-            color,
-            focused,
-          }) => (
-            <Ionicons
-              name={
-                focused
-                  ? "person"
-                  : "person-outline"
-              }
-              size={22}
-              color={color}
-            />
+          title: "PROFILE",
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+              <Ionicons
+                name={focused ? "person" : "person-outline"}
+                size={20}
+                color={color}
+              />
+            </View>
           ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,          // circle per DESIGN.md
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+  },
+  iconWrapActive: {
+    backgroundColor: "rgba(30, 215, 96, 0.12)",  // green tint on active
+  },
+});

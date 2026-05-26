@@ -12,7 +12,7 @@ export default function CaptchaImage({
       }}
       resizeMode="contain"
       style={{
-        width: 180,
+        width: 250,
         height: 70,
       }}
     />
