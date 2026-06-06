@@ -2,6 +2,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+  saveCredentials,
+  getCredentials,
+} from "../store/savedCredentials";
+import {
   ActivityIndicator,
   Alert,
   Dimensions,
@@ -28,6 +32,11 @@ export default function LoginScreen() {
   const [sessionId, setSessionId] = useState("");
   const [captchaUrl, setCaptchaUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [savedUser, setSavedUser] =
+    useState<string | null>(null);
+
+  const [savedPassword, setSavedPassword] =
+    useState<string | null>(null);
 
   const setAuth = useAuthStore((state) => state.setAuth);
   const authToken = useAuthStore((state) => state.authToken);
@@ -45,11 +54,24 @@ export default function LoginScreen() {
   };
 
   useEffect(() => {
-    if (hasHydrated && authToken) {
-      router.replace("/(tabs)");
-      return;
-    }
-    fetchCaptcha();
+    const init = async () => {
+      if (hasHydrated && authToken) {
+        router.replace("/(tabs)");
+        return;
+      }
+
+      const saved =
+        await getCredentials();
+
+      if (saved) {
+        setSavedUser(saved.username);
+        setSavedPassword(saved.password);
+      }
+
+      fetchCaptcha();
+    };
+
+    init();
   }, [hasHydrated, authToken]);
 
   const handleLogin = async () => {
@@ -69,6 +91,10 @@ export default function LoginScreen() {
         fetchCaptcha();
         return;
       }
+      await saveCredentials(
+        username,
+        password
+      );
       setAuth(response.data.userId, response.data.authToken);
       router.replace("/(tabs)");
     } catch (err: any) {
@@ -118,6 +144,20 @@ export default function LoginScreen() {
 
             <Text style={styles.cardTitle}>Sign In</Text>
             <Text style={styles.cardSubtitle}>Use your enrollment credentials</Text>
+
+            {savedUser && (
+              <TouchableOpacity
+                style={styles.savedAccountBtn}
+                onPress={() => {
+                  setUsername(savedUser);
+                  setPassword(savedPassword || "");
+                }}
+              >
+                <Text style={styles.savedAccountText}>
+                  Continue as {savedUser}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <View style={styles.fields}>
 
@@ -209,6 +249,22 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: "#121212",
+  },
+
+  savedAccountBtn: {
+    marginBottom: 16,
+    backgroundColor: "#1f1f1f",
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#1ed760",
+  },
+
+  savedAccountText: {
+    color: "#1ed760",
+    textAlign: "center",
+    fontWeight: "700",
+    fontSize: 13,
   },
 
   // BG orbs
