@@ -47,7 +47,9 @@ export default function LoginScreen() {
       const response = await api.get("/auth/captcha");
       setSessionId(response.data.sessionId);
       setCaptchaUrl(response.data.captcha);
-      setCaptcha("");
+      setCaptcha(
+        response.data.prediction || ""
+      );
     } catch (err) {
       Alert.alert("Error", "Captcha fetch failed");
     }
