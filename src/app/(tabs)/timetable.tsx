@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   RefreshControl,
   SectionList,
-  StyleSheet,
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import Card from "../../components/Card";
+import Glass from "../../components/Glass";
+import { useTabBarClearance } from "../../components/GlassTabBar";
+import { InfoPill } from "../../components/Pill";
+import Screen from "../../components/Screen";
+import { EmptyState, ErrorState, LoadingState } from "../../components/StateView";
 import { api } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
+import { createStyles, font, radius, space, type, useTheme } from "../../theme";
 
 type TimetableSlot = {
   period: number;
@@ -23,20 +27,26 @@ type TimetableDay = {
 };
 
 export default function TimetableScreen() {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  const clearance = useTabBarClearance();
   const authToken = useAuthStore((state) => state.authToken);
   const [session, setSession] = useState("");
   const [days, setDays] = useState<TimetableDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(false);
 
   const fetchTimetable = async () => {
     if (!authToken) { setLoading(false); return; }
     try {
+      setError(false);
       const response = await api.get("/timetable");
       setSession(response.data.timetable?.session || "");
       setDays(response.data.timetable?.days || []);
     } catch (err) {
       console.log(err);
+      setError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -49,10 +59,20 @@ export default function TimetableScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView edges={["top"]} style={styles.centerWrap}>
-        <ActivityIndicator size="large" color="#1ed760" />
-        <Text style={styles.loadingText}>LOADING TIMETABLE</Text>
-      </SafeAreaView>
+      <Screen>
+        <LoadingState label="Loading timetable…" />
+      </Screen>
+    );
+  }
+
+  if (error && days.length === 0) {
+    return (
+      <Screen>
+        <ErrorState
+          message="Couldn't load your timetable."
+          onRetry={() => { setLoading(true); fetchTimetable(); }}
+        />
+      </Screen>
     );
   }
 
@@ -61,23 +81,19 @@ export default function TimetableScreen() {
     .map((d) => ({ title: d.day, data: d.slots }));
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.safe}>
-      <View style={styles.orbTopRight} />
-
+    <Screen>
       <SectionList
         sections={sections}
         keyExtractor={(item, index) => `${item.period}-${index}`}
         stickySectionHeadersEnabled
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: clearance }]}
 
         ListHeaderComponent={
-          <View>
-            <Text style={styles.pageTitle}>TIMETABLE</Text>
+          <View style={styles.header}>
+            <Text style={styles.pageTitle}>Timetable</Text>
             {session ? (
-              <View style={styles.sessionPill}>
-                <Text style={styles.sessionText}>{session}</Text>
-              </View>
+              <InfoPill>Academic Session {session}</InfoPill>
             ) : (
               <Text style={styles.pageSubtitle}>Current semester schedule</Text>
             )}
@@ -86,26 +102,27 @@ export default function TimetableScreen() {
 
         renderSectionHeader={({ section: { title } }) => (
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionHeaderText}>{title.toUpperCase()}</Text>
-            <View style={styles.sectionHeaderLine} />
+            <Glass style={styles.sectionHeaderGlass}>
+              <Text style={styles.sectionHeaderText}>{title}</Text>
+            </Glass>
           </View>
         )}
 
         renderItem={({ item }) => (
-          <View style={styles.slotCard}>
+          <Card style={styles.slotCard}>
             {/* LEFT — period indicator */}
             <View style={styles.slotLeft}>
               <Text style={styles.periodNum}>{item.period}</Text>
-              <Text style={styles.periodLabel}>PER</Text>
+              <Text style={styles.periodLabel}>Period</Text>
             </View>
-
-            {/* DIVIDER */}
-            <View style={styles.slotDivider} />
 
             {/* RIGHT — time + subjects */}
             <View style={styles.slotRight}>
               {item.time ? (
-                <Text style={styles.slotTime}>{item.time}</Text>
+                <Text style={styles.slotTime}>
+                  {/* SMS gives "09:50 AM -10:40 AM". */}
+                  {item.time.replace(/\s*-\s*/, " – ")}
+                </Text>
               ) : null}
               {item.subjects.map((subject, i) => (
                 <Text key={i} style={styles.subjectText}>
@@ -113,179 +130,95 @@ export default function TimetableScreen() {
                 </Text>
               ))}
             </View>
-          </View>
+          </Card>
         )}
 
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#1ed760"
-            colors={["#1ed760"]}
+            tintColor={colors.accentInk}
+            colors={[colors.accentInk]}
+            progressBackgroundColor={colors.surfaceSolid}
           />
         }
 
-        ListEmptyComponent={
-          <View style={styles.emptyWrap}>
-            <Text style={styles.emptyText}>NO TIMETABLE DATA</Text>
-          </View>
-        }
+        ListEmptyComponent={<EmptyState label="No timetable to show yet." />}
       />
-    </SafeAreaView>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: "#121212",
-  },
-  centerWrap: {
-    flex: 1,
-    backgroundColor: "#121212",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 12,
-  },
-  loadingText: {
-    color: "#b3b3b3",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 2,
-  },
-
-  orbTopRight: {
-    position: "absolute",
-    top: -60,
-    right: -60,
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: "#1ed760",
-    opacity: 0.05,
-  },
-
+const useStyles = createStyles(({ colors }) => ({
   listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 32,
+    paddingHorizontal: space.gutter,
+    paddingTop: space.gutter,
   },
 
   // HEADER
+  header: {
+    gap: 8,
+    marginBottom: 12,
+  },
   pageTitle: {
-    color: "#ffffff",
-    fontSize: 24,
-    fontWeight: "700",
-    letterSpacing: 1.4,
-    marginBottom: 8,
+    ...type.largeTitle,
+    color: colors.text,
   },
   pageSubtitle: {
-    color: "#b3b3b3",
-    fontSize: 13,
-    fontWeight: "400",
-    marginBottom: 20,
-  },
-  sessionPill: {
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: "#1ed760",
-    borderRadius: 9999,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginBottom: 20,
-    backgroundColor: "rgba(30,215,96,0.06)",
-  },
-  sessionText: {
-    color: "#1ed760",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.4,
+    ...type.footnote,
+    color: colors.textMuted,
   },
 
   // SECTION HEADER
   sectionHeader: {
-    backgroundColor: "#121212",
     paddingVertical: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+    alignItems: "flex-start",
+  },
+  sectionHeaderGlass: {
+    borderRadius: radius.capsule,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   sectionHeaderText: {
-    color: "#b3b3b3",
-    fontSize: 24,
-    fontWeight: "700",
-    letterSpacing: 2,
-  },
-  sectionHeaderLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#1f1f1f",
+    ...type.headline,
+    color: colors.text,
   },
 
   // SLOT CARD
   slotCard: {
-    backgroundColor: "#181818",
-    borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: space.cardGap,
     flexDirection: "row",
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
   slotLeft: {
-    width: 52,
-    backgroundColor: "#1f1f1f",
+    width: 72,
+    backgroundColor: colors.surfaceRaised,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
+    paddingVertical: space.listCard,
     gap: 2,
   },
   periodNum: {
-    color: "#1ed760",
-    fontSize: 18,
-    fontWeight: "700",
+    ...type.headline,
+    color: colors.text,
+    fontVariant: ["tabular-nums"],
   },
   periodLabel: {
-    color: "#b3b3b3",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1.4,
-  },
-  slotDivider: {
-    width: 1,
-    backgroundColor: "#4d4d4d",
+    ...type.overline,
+    color: colors.textMuted,
   },
   slotRight: {
     flex: 1,
-    padding: 14,
+    padding: space.listCard,
     gap: 4,
   },
   slotTime: {
-    color: "#b3b3b3",
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 1.4,
-    marginBottom: 4,
+    ...type.footnote,
+    ...font.mono,
+    color: colors.textMuted,
   },
   subjectText: {
-    color: "#ffffff",
-    fontSize: 13,
-    fontWeight: "600",
-    lineHeight: 20,
+    ...type.bodyStrong,
+    color: colors.text,
   },
-
-  // EMPTY
-  emptyWrap: {
-    alignItems: "center",
-    marginTop: 48,
-  },
-  emptyText: {
-    color: "#4d4d4d",
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 2,
-  },
-});
+}));

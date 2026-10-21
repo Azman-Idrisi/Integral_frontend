@@ -3,14 +3,13 @@ import {
   useState,
 } from "react";
 
-import {
-  ActivityIndicator,
-  View,
-} from "react-native";
-
 import { Redirect } from "expo-router";
 
 import LoginScreen from "./login";
+
+import Screen from "../components/Screen";
+
+import { LoadingState } from "../components/StateView";
 
 import { useAuthStore } from "../store/authStore";
 
@@ -62,17 +61,13 @@ export default function Index() {
       sessionValid === null)
   ) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
+      <Screen
+        edges={["top", "bottom"]}
       >
-        <ActivityIndicator
-          size="large"
+        <LoadingState
+          label="Checking your sign-in…"
         />
-      </View>
+      </Screen>
     );
   }
 

@@ -2,21 +2,42 @@ import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   ScrollView,
-  StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import Card from "../../components/Card";
+import CustomButton from "../../components/CustomButton";
+import { useTabBarClearance } from "../../components/GlassTabBar";
+import IndependenceLine from "../../components/IndependenceLine";
+import { InfoPill } from "../../components/Pill";
+import Screen from "../../components/Screen";
+import SegmentedControl, {
+  type SegmentOption,
+} from "../../components/SegmentedControl";
+import { ErrorState, LoadingState } from "../../components/StateView";
 import { api } from "../../services/api";
+import {
+  useAppearanceStore,
+  type AppearanceSetting,
+} from "../../store/appearanceStore";
 import { useAuthStore } from "../../store/authStore";
+import { createStyles, font, radius, space, type } from "../../theme";
+
+const APPEARANCE_OPTIONS: SegmentOption<AppearanceSetting>[] = [
+  { value: "system", label: "System", icon: "phone-portrait-outline" },
+  { value: "light", label: "Light", icon: "sunny-outline" },
+  { value: "dark", label: "Dark", icon: "moon-outline" },
+];
 
 export default function ProfileScreen() {
+  const styles = useStyles();
+  const clearance = useTabBarClearance();
   const authToken = useAuthStore((state) => state.authToken);
   const logout = useAuthStore((state) => state.logout);
+  const appearance = useAppearanceStore((state) => state.appearance);
+  const setAppearance = useAppearanceStore((state) => state.setAppearance);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -43,7 +64,7 @@ export default function ProfileScreen() {
       const response = await api.get("/profile");
       setProfile(response.data.profile);
     } catch {
-      setError("Failed to load profile");
+      setError("Couldn't load your profile.");
     } finally {
       setLoading(false);
     }
@@ -53,36 +74,42 @@ export default function ProfileScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView edges={["top"]} style={styles.centerWrap}>
-        <ActivityIndicator size="large" color="#1ed760" />
-        <Text style={styles.loadingText}>LOADING PROFILE</Text>
-      </SafeAreaView>
+      <Screen>
+        <LoadingState label="Loading profile…" />
+      </Screen>
     );
   }
 
   if (!profile) {
     return (
-      <SafeAreaView edges={["top"]} style={styles.centerWrap}>
-        <Text style={styles.errorText}>{error || "Failed to load profile"}</Text>
-        <LogoutButton onPress={handleLogout} />
-      </SafeAreaView>
+      <Screen>
+        <ErrorState
+          message={error || "Couldn't load your profile."}
+          onRetry={() => { setLoading(true); fetchProfile(); }}
+        >
+          <CustomButton
+            title="Log out"
+            variant="secondary"
+            icon="log-out-outline"
+            onPress={handleLogout}
+          />
+        </ErrorState>
+      </Screen>
     );
   }
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.safe}>
-      <View style={styles.orbTopRight} />
-
+    <Screen>
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingBottom: clearance }]}
         showsVerticalScrollIndicator={false}
       >
         {/* PAGE TITLE */}
-        <Text style={styles.pageTitle}>PROFILE</Text>
+        <Text style={styles.pageTitle}>Profile</Text>
         <Text style={styles.pageSubtitle}>Student information</Text>
 
         {/* HERO CARD */}
-        <View style={styles.heroCard}>
+        <Card style={styles.heroCard}>
           {/* Photo */}
           {profile.image ? (
             <Image
@@ -91,7 +118,7 @@ export default function ProfileScreen() {
               contentFit="cover"
             />
           ) : (
-            <View style={styles.photoPlaceholder}>
+            <View style={[styles.photo, styles.photoPlaceholder]}>
               <Text style={styles.photoPlaceholderText}>
                 {profile.txtStudentName?.[0] || "S"}
               </Text>
@@ -103,31 +130,47 @@ export default function ProfileScreen() {
             <Text style={styles.studentName} numberOfLines={2}>
               {profile.txtStudentName || "Student"}
             </Text>
-            <View style={styles.enrollPill}>
-              <Text style={styles.enrollText}>{profile.txtEnrollNo}</Text>
-            </View>
+            <InfoPill mono>{profile.txtEnrollNo}</InfoPill>
             {profile.lblABC_ID ? (
-              <Text style={styles.abcText}>ABC · {profile.lblABC_ID}</Text>
+              <Text style={styles.abcText}>ABC ID · {profile.lblABC_ID}</Text>
             ) : null}
           </View>
-        </View>
+        </Card>
 
         {/* DETAILS CARD */}
-        <View style={styles.detailsCard}>
-          <Text style={styles.sectionLabel}>PERSONAL DETAILS</Text>
+        <Card style={styles.detailsCard}>
+          <Text style={styles.sectionLabel}>Personal details</Text>
 
-          <ProfileItem label="DATE OF BIRTH" value={profile.txtDOB} />
-          <ProfileItem label="BRANCH" value={profile.txtBranch} />
-          <ProfileItem label="SEMESTER" value={profile.txtSemester} />
-          <ProfileItem label="FATHER'S NAME" value={profile.txtFatherName} />
-          <ProfileItem label="MOTHER'S NAME" value={profile.txtMotherName} />
-          <ProfileItem label="CATEGORY" value={profile.txtCategory} />
-          <ProfileItem label="ANNUAL INCOME" value={profile.txtIncome} last />
+          <ProfileItem label="Date of birth" value={profile.txtDOB} />
+          <ProfileItem label="Branch" value={profile.txtBranch} />
+          <ProfileItem label="Semester" value={profile.txtSemester} />
+          <ProfileItem label="Father's name" value={profile.txtFatherName} />
+          <ProfileItem label="Mother's name" value={profile.txtMotherName} />
+          <ProfileItem label="Category" value={profile.txtCategory} />
+          <ProfileItem label="Annual income" value={profile.txtIncome} last />
+        </Card>
+
+        {/* APPEARANCE */}
+        <View style={styles.appearance}>
+          <Text style={styles.sectionLabel}>Appearance</Text>
+          <SegmentedControl
+            label="Appearance"
+            options={APPEARANCE_OPTIONS}
+            value={appearance}
+            onChange={setAppearance}
+          />
         </View>
 
-        <LogoutButton onPress={handleLogout} />
+        <CustomButton
+          title="Log out"
+          variant="secondary"
+          icon="log-out-outline"
+          onPress={handleLogout}
+        />
+
+        <IndependenceLine style={styles.independence} />
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
@@ -140,6 +183,8 @@ function ProfileItem({
   value?: string;
   last?: boolean;
 }) {
+  const styles = useStyles();
+
   return (
     <View style={[styles.item, !last && styles.itemBorder]}>
       <Text style={styles.itemLabel}>{label}</Text>
@@ -148,156 +193,70 @@ function ProfileItem({
   );
 }
 
-function LogoutButton({ onPress }: { onPress: () => void }) {
-  return (
-    <TouchableOpacity style={styles.logoutBtn} onPress={onPress} activeOpacity={0.8}>
-      <Text style={styles.logoutText}>LOG OUT</Text>
-    </TouchableOpacity>
-  );
-}
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: "#121212",
-  },
-  centerWrap: {
-    flex: 1,
-    backgroundColor: "#121212",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 12,
-  },
-  loadingText: {
-    color: "#b3b3b3",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 2,
-  },
-  errorText: {
-    color: "#f3727f",
-    fontSize: 14,
-    fontWeight: "700",
-    marginBottom: 16,
-  },
-
-  orbTopRight: {
-    position: "absolute",
-    top: -60,
-    right: -60,
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: "#1ed760",
-    opacity: 0.05,
-  },
-
+const useStyles = createStyles(({ colors }) => ({
   scroll: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 32,
+    paddingHorizontal: space.gutter,
+    paddingTop: space.gutter,
   },
 
   // PAGE HEADER
   pageTitle: {
-    color: "#ffffff",
-    fontSize: 24,
-    fontWeight: "700",
-    letterSpacing: 1.4,
+    ...type.largeTitle,
+    color: colors.text,
   },
   pageSubtitle: {
-    color: "#b3b3b3",
-    fontSize: 13,
-    fontWeight: "400",
+    ...type.footnote,
+    color: colors.textMuted,
     marginTop: 2,
     marginBottom: 20,
   },
 
   // HERO CARD
   heroCard: {
-    backgroundColor: "#181818",
-    borderRadius: 8,
-    padding: 20,
+    padding: space.card,
     flexDirection: "row",
     gap: 16,
     alignItems: "center",
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
-    elevation: 12,
+    marginBottom: space.cardGap,
   },
   photo: {
     width: 80,
     height: 100,
-    borderRadius: 6,
-    backgroundColor: "#1f1f1f",
+    borderRadius: radius.photo,
+    backgroundColor: colors.surfaceRaised,
   },
   photoPlaceholder: {
-    width: 80,
-    height: 100,
-    borderRadius: 6,
-    backgroundColor: "#1f1f1f",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#4d4d4d",
   },
   photoPlaceholderText: {
-    color: "#1ed760",
-    fontSize: 32,
-    fontWeight: "700",
+    ...type.largeTitle,
+    color: colors.text,
   },
   heroInfo: {
     flex: 1,
     gap: 8,
   },
   studentName: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "700",
-    lineHeight: 24,
-  },
-  enrollPill: {
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: "#4d4d4d",
-    borderRadius: 9999,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  enrollText: {
-    color: "#b3b3b3",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.4,
+    ...type.headline,
+    color: colors.text,
   },
   abcText: {
-    color: "#b3b3b3",
-    fontSize: 11,
-    fontWeight: "400",
-    letterSpacing: 0.5,
+    ...type.footnote,
+    ...font.mono,
+    color: colors.textMuted,
   },
 
   // DETAILS CARD
   detailsCard: {
-    backgroundColor: "#181818",
-    borderRadius: 8,
-    padding: 20,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
-    elevation: 12,
+    padding: space.card,
+    paddingBottom: 6,
+    marginBottom: space.sectionGap,
   },
   sectionLabel: {
-    color: "#b3b3b3",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 2,
-    marginBottom: 16,
+    ...type.overline,
+    color: colors.textMuted,
+    marginBottom: 8,
   },
 
   // PROFILE ITEM
@@ -310,36 +269,27 @@ const styles = StyleSheet.create({
   },
   itemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: "#1f1f1f",
+    borderBottomColor: colors.border,
   },
   itemLabel: {
-    color: "#b3b3b3",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1.4,
+    ...type.callout,
+    color: colors.textMuted,
     flex: 1,
   },
   itemValue: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontWeight: "700",
+    ...type.callout,
+    ...font.semibold,
+    color: colors.text,
     flex: 2,
     textAlign: "right",
   },
 
-  // LOGOUT
-  logoutBtn: {
-    borderWidth: 1,
-    borderColor: "#f3727f",
-    borderRadius: 9999,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 8,
+  // APPEARANCE
+  appearance: {
+    marginBottom: space.sectionGap,
   },
-  logoutText: {
-    color: "#f3727f",
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: 2,
+
+  independence: {
+    marginTop: space.sectionGap,
   },
-});
+}));

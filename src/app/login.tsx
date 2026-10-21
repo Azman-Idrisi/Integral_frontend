@@ -1,4 +1,3 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -8,24 +7,25 @@ import {
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import CaptchaImage from "../components/CaptchaImage";
+import CustomButton from "../components/CustomButton";
 import CustomInput from "../components/CustomInput";
+import IndependenceLine from "../components/IndependenceLine";
+import Screen from "../components/Screen";
 import { api } from "../services/api";
 import { useAuthStore } from "../store/authStore";
-
-const { width, height } = Dimensions.get("window");
+import { createStyles, radius, space, type, useTheme } from "../theme";
 
 export default function LoginScreen() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [captcha, setCaptcha] = useState("");
@@ -51,7 +51,7 @@ export default function LoginScreen() {
         response.data.prediction || ""
       );
     } catch (err) {
-      Alert.alert("Error", "Captcha fetch failed");
+      Alert.alert("Error", "Couldn't load the captcha");
     }
   };
 
@@ -89,7 +89,7 @@ export default function LoginScreen() {
         sessionId,
       });
       if (!response.data.success) {
-        Alert.alert("Login Failed", response.data.error || "Invalid credentials");
+        Alert.alert("Sign-in failed", response.data.error || "Invalid credentials");
         fetchCaptcha();
         return;
       }
@@ -100,7 +100,7 @@ export default function LoginScreen() {
       setAuth(response.data.userId, response.data.authToken);
       router.replace("/(tabs)");
     } catch (err: any) {
-      Alert.alert("Error", err?.response?.data?.error || "Login failed");
+      Alert.alert("Error", err?.response?.data?.error || "Sign-in failed");
       fetchCaptcha();
     } finally {
       setLoading(false);
@@ -108,22 +108,9 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* BG gradient layers */}
-      <LinearGradient
-        colors={["#121212", "#181818", "#121212"]}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Accent orb top-right */}
-      <View style={styles.orbTopRight} />
-      {/* Accent orb bottom-left */}
-      <View style={styles.orbBottomLeft} />
-
-
-
+    <Screen edges={["top", "bottom"]}>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
@@ -131,233 +118,152 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          <View style={styles.main}>
 
-          {/* HEADER */}
-          <View style={styles.header}>
-            <View style={styles.logoMark}>
-              <Text style={styles.logoLetter}>I</Text>
+            {/* HEADER */}
+            <View style={styles.header}>
+              <Image
+                source={require("../../assets/icon.png")}
+                style={styles.appIcon}
+                accessibilityIgnoresInvertColors
+              />
+              <Text style={styles.appName}>Integral Student Portal</Text>
             </View>
-            <Text style={styles.institution}>INTEGRAL UNIVERSITY</Text>
-            <Text style={styles.portalLabel}>STUDENT PORTAL</Text>
-          </View>
 
-          {/* CARD */}
-          <View style={styles.card}>
+            {/* FORM */}
+            <View>
 
-            <Text style={styles.cardTitle}>Sign In</Text>
-            <Text style={styles.cardSubtitle}>Use your enrollment credentials</Text>
+              <Text style={styles.formTitle}>Sign in</Text>
+              <Text style={styles.formSubtitle}>
+                Use your Enrollment Number and password
+              </Text>
 
-            {savedUser && (
-              <TouchableOpacity
-                style={styles.savedAccountBtn}
-                onPress={() => {
-                  setUsername(savedUser);
-                  setPassword(savedPassword || "");
-                }}
-              >
-                <Text style={styles.savedAccountText}>
-                  Continue as {savedUser}
-                </Text>
-              </TouchableOpacity>
-            )}
+              {savedUser && (
+                <CustomButton
+                  variant="secondary"
+                  title={`Continue as ${savedUser}`}
+                  onPress={() => {
+                    setUsername(savedUser);
+                    setPassword(savedPassword || "");
+                  }}
+                  style={styles.savedAccountBtn}
+                />
+              )}
 
-            <View style={styles.fields}>
-
-              {/* Enrollment */}
-              <View style={styles.fieldWrap}>
-                <Text style={styles.fieldLabel}>ENROLLMENT NUMBER</Text>
+              <View style={styles.fields}>
                 <CustomInput
+                  label="Enrollment Number"
                   placeholder="e.g. 2200000000"
                   value={username}
                   onChangeText={setUsername}
-                  style={styles.input}
-                  placeholderTextColor="#4d4d4d"
+                  autoCapitalize="none"
+                  autoCorrect={false}
                 />
-              </View>
 
-              {/* Password */}
-              <View style={styles.fieldWrap}>
-                <Text style={styles.fieldLabel}>PASSWORD</Text>
                 <CustomInput
+                  label="Password"
                   placeholder="••••••••"
                   secureTextEntry
                   value={password}
                   onChangeText={setPassword}
-                  style={styles.input}
-                  placeholderTextColor="#4d4d4d"
                 />
-              </View>
 
-              {/* Captcha */}
-              <View style={styles.fieldWrap}>
-                <View style={styles.captchaHeader}>
-                  <Text style={styles.fieldLabel}>CAPTCHA</Text>
-                  <TouchableOpacity onPress={fetchCaptcha} style={styles.refreshBtn}>
-                    <Text style={styles.refreshText}>↻  REFRESH</Text>
-                  </TouchableOpacity>
+                {/* Captcha */}
+                <View style={styles.fieldWrap}>
+                  <View style={styles.captchaHeader}>
+                    <Text style={styles.fieldLabel}>Captcha</Text>
+                    <CustomButton
+                      variant="icon"
+                      icon="refresh"
+                      title="Refresh captcha"
+                      onPress={fetchCaptcha}
+                    />
+                  </View>
+
+                  <View style={styles.captchaBox}>
+                    {captchaUrl ? (
+                      <CaptchaImage captchaUrl={captchaUrl} />
+                    ) : (
+                      <ActivityIndicator color={colors.accentInk} />
+                    )}
+                  </View>
+
+                  <CustomInput
+                    placeholder="Enter the characters above"
+                    accessibilityLabel="Captcha"
+                    value={captcha}
+                    onChangeText={setCaptcha}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
                 </View>
-
-                {captchaUrl ? (
-                  <View style={styles.captchaImageWrap}>
-                    <CaptchaImage captchaUrl={captchaUrl} />
-                  </View>
-                ) : (
-                  <View style={styles.captchaPlaceholder}>
-                    <ActivityIndicator color="#1ed760" size="small" />
-                  </View>
-                )}
-
-                <CustomInput
-                  placeholder="Enter characters above"
-                  value={captcha}
-                  onChangeText={setCaptcha}
-                  style={styles.input}
-                  placeholderTextColor="#4d4d4d"
-                />
               </View>
+
+              <CustomButton
+                title="Sign in"
+                onPress={handleLogin}
+                loading={loading}
+                style={styles.loginBtn}
+              />
 
             </View>
 
-            {/* LOGIN BTN */}
-            <TouchableOpacity
-              style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
-              onPress={handleLogin}
-              activeOpacity={0.85}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#000000" size="small" />
-              ) : (
-                <Text style={styles.loginBtnText}>LOGIN</Text>
-              )}
-            </TouchableOpacity>
-
           </View>
 
-          {/* FOOTER */}
-          <Text style={styles.footer}>
-            Having trouble?{" "}
-            <Text style={styles.footerLink}>Contact IT Support</Text>
-          </Text>
-
+          <IndependenceLine style={styles.independence} />
 
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
+const useStyles = createStyles(({ colors }) => ({
+  flex: {
     flex: 1,
-    backgroundColor: "#121212",
-  },
-
-  savedAccountBtn: {
-    marginBottom: 16,
-    backgroundColor: "#1f1f1f",
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#1ed760",
-  },
-
-  savedAccountText: {
-    color: "#1ed760",
-    textAlign: "center",
-    fontWeight: "700",
-    fontSize: 13,
-  },
-
-  // BG orbs
-  orbTopRight: {
-    position: "absolute",
-    top: -80,
-    right: -80,
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: "#1ed760",
-    opacity: 0.06,
-  },
-  orbBottomLeft: {
-    position: "absolute",
-    bottom: -60,
-    left: -60,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "#1ed760",
-    opacity: 0.04,
   },
 
   container: {
+    flexGrow: 1,
+    paddingHorizontal: space.gutter,
+    paddingVertical: space.sectionGap,
+  },
+
+  // Header and form centered; the independence line sits at the bottom.
+  main: {
     flex: 1,
     justifyContent: "center",
-    paddingHorizontal: 20,
   },
 
   // HEADER
   header: {
     alignItems: "center",
-    marginBottom: 28,
+    gap: 12,
+    marginBottom: space.sectionGap,
   },
-  logoMark: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "#1ed760",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-    // shadow
-    shadowColor: "#1ed760",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
+  appIcon: {
+    width: 88,
+    height: 88,
+    borderRadius: radius.photo,
   },
-  logoLetter: {
-    color: "#000000",
-    fontSize: 24,
-    fontWeight: "700",
-  },
-  institution: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: 2,
-  },
-  portalLabel: {
-    color: "#b3b3b3",
-    fontSize: 11,
-    fontWeight: "400",
-    letterSpacing: 1.4,
-    marginTop: 2,
+  appName: {
+    ...type.headline,
+    color: colors.text,
+    textAlign: "center",
   },
 
-  // CARD
-  card: {
-    backgroundColor: "#181818",
-    borderRadius: 8,
-    padding: 24,
-    // heavy shadow per DESIGN.md
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
-    elevation: 12,
+  // FORM
+  formTitle: {
+    ...type.title,
+    color: colors.text,
   },
-  cardTitle: {
-    color: "#ffffff",
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: 4,
+  formSubtitle: {
+    ...type.footnote,
+    color: colors.textMuted,
+    marginTop: 4,
+    marginBottom: 20,
   },
-  cardSubtitle: {
-    color: "#b3b3b3",
-    fontSize: 14,
-    fontWeight: "400",
+  savedAccountBtn: {
     marginBottom: 20,
   },
 
@@ -365,25 +271,11 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   fieldWrap: {
-    gap: 6,
+    gap: 8,
   },
   fieldLabel: {
-    color: "#b3b3b3",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1.4,
-  },
-  input: {
-    backgroundColor: "#1f1f1f",
-    color: "#ffffff",
-    borderRadius: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    fontWeight: "400",
-    // inset border per DESIGN.md
-    borderWidth: 1,
-    borderColor: "#4d4d4d",
+    ...type.overline,
+    color: colors.textMuted,
   },
 
   // CAPTCHA
@@ -392,66 +284,21 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  refreshBtn: {
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 9999,
-    borderWidth: 1,
-    borderColor: "#4d4d4d",
-  },
-  refreshText: {
-    color: "#1ed760",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1.4,
-  },
-  captchaImageWrap: {
-    borderRadius: 6,
+  captchaBox: {
+    minHeight: 86,
+    borderRadius: radius.input,
     overflow: "hidden",
-    backgroundColor: "#1f1f1f",
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-  captchaPlaceholder: {
-    height: 60,
-    backgroundColor: "#1f1f1f",
-    borderRadius: 6,
+    backgroundColor: colors.surfaceRaised,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 8,
   },
 
-  // LOGIN BUTTON — Spotify green pill
   loginBtn: {
-    backgroundColor: "#1ed760",
-    borderRadius: 9999,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 24,
-    shadowColor: "#1ed760",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  loginBtnDisabled: {
-    opacity: 0.6,
-  },
-  loginBtnText: {
-    color: "#000000",
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: 2,
+    marginTop: space.sectionGap,
   },
 
-  // FOOTER
-  footer: {
-    color: "#b3b3b3",
-    fontSize: 12,
-    textAlign: "center",
-    marginTop: 20,
+  independence: {
+    marginTop: space.sectionGap,
   },
-  footerLink: {
-    color: "#1ed760",
-    fontWeight: "600",
-  },
-});
+}));

@@ -1,79 +1,88 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import { createStyles, radius, space, type, useTheme } from "../theme";
+import type { AttendanceItem } from "../types/attendance";
+import { getStanding, standingToken } from "../utils/standing";
+import Card from "./Card";
+import { StandingPill } from "./Pill";
 
-export default function AttendanceCard({ item }: any) {
+export default function AttendanceCard({ item }: { item: AttendanceItem }) {
+  const styles = useStyles();
+  const { name, colors } = useTheme();
   const pct = parseFloat(item.percentage) || 0;
+  const standing = getStanding(pct);
+  const accentColor = colors[standingToken[standing]];
 
-  const accentColor =
-    pct >= 75 ? "#1ed760" :
-      pct >= 60 ? "#ffa42b" :
-        "#f3727f";
+  // Dark: status color as text. Light: `text` plus a status dot,
+  // because the blues are too light for text on white.
+  const colorAsText = name === "dark";
 
   const barWidth = `${Math.min(pct, 100)}%`;
 
   return (
-    <View style={styles.card}>
+    <Card style={styles.card}>
 
       {/* TOP ROW */}
       <View style={styles.topRow}>
         <Text style={styles.course} numberOfLines={2}>
-          {item.course}
+          {/* SMS pads some course codes with runs of spaces. */}
+          {item.course.replace(/\s+/g, " ")}
         </Text>
-        <Text style={[styles.percentage, { color: accentColor }]}>
-          {item.percentage}%
-        </Text>
-      </View>
-
-      {/* PROGRESS BAR */}
-      <View
-        style={[
-          styles.barFill,
-          {
-            width: barWidth as `${number}%`,
-            backgroundColor: accentColor,
-          },
-        ]}
-      />
-
-      {/* BOTTOM ROW */}
-      <View style={styles.bottomRow}>
-        <View style={styles.stat}>
-          <Text style={styles.statLabel}>HELD</Text>
-          <Text style={styles.statValue}>{item.held}</Text>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.stat}>
-          <Text style={styles.statLabel}>PRESENT</Text>
-          <Text style={styles.statValue}>{item.present}</Text>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.stat}>
-          <Text style={styles.statLabel}>ABSENT</Text>
-          <Text style={styles.statValue}>{item.held - item.present}</Text>
-        </View>
-        <View style={styles.divider} />
-        {/* STATUS PILL */}
-        <View style={[styles.statusPill, { borderColor: accentColor }]}>
-          <Text style={[styles.statusText, { color: accentColor }]}>
-            {item.status?.toUpperCase() || (pct >= 75 ? "SAFE" : pct >= 60 ? "LOW" : "SHORT")}
+        <View style={styles.percentageWrap}>
+          {!colorAsText && (
+            <View style={[styles.dot, { backgroundColor: accentColor }]} />
+          )}
+          <Text
+            style={[styles.percentage, colorAsText && { color: accentColor }]}
+          >
+            {item.percentage}%
           </Text>
         </View>
       </View>
 
+      {/* PROGRESS BAR */}
+      <View style={styles.barTrack}>
+        <View
+          style={[
+            styles.barFill,
+            {
+              width: barWidth as `${number}%`,
+              backgroundColor: accentColor,
+            },
+          ]}
+        />
+      </View>
+
+      {/* BOTTOM ROW */}
+      <View style={styles.bottomRow}>
+        <Stat label="Held" value={item.held} />
+        <View style={styles.divider} />
+        <Stat label="Present" value={item.present} />
+        <View style={styles.divider} />
+        <Stat label="Absent" value={Number(item.held) - Number(item.present)} />
+        <View style={styles.pill}>
+          <StandingPill standing={standing} />
+        </View>
+      </View>
+
+    </Card>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string | number }) {
+  const styles = useStyles();
+
+  return (
+    <View style={styles.stat}>
+      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={styles.statValue}>{value}</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles(({ colors }) => ({
   card: {
-    backgroundColor: "#181818",
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    padding: space.listCard,
+    marginBottom: space.cardGap,
   },
 
   topRow: {
@@ -84,68 +93,64 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   course: {
+    ...type.bodyStrong,
     flex: 1,
-    color: "#ffffff",
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 20,
+    color: colors.text,
+  },
+  percentageWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: radius.capsule,
   },
   percentage: {
-    fontSize: 22,
-    fontWeight: "700",
+    ...type.title,
+    color: colors.text,
+    fontVariant: ["tabular-nums"],
   },
 
   // PROGRESS BAR
   barTrack: {
-    height: 3,
-    backgroundColor: "#1f1f1f",
-    borderRadius: 9999,
+    height: 6,
+    backgroundColor: colors.surfaceRaised,
+    borderRadius: radius.capsule,
     marginBottom: 14,
     overflow: "hidden",
   },
   barFill: {
-    height: 3,
-    borderRadius: 9999,
+    height: 6,
+    borderRadius: radius.capsule,
   },
 
   // STATS
   bottomRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
   },
   stat: {
     alignItems: "center",
     gap: 2,
   },
   statLabel: {
-    color: "#b3b3b3",
-    fontSize: 9,
-    fontWeight: "700",
-    letterSpacing: 1.4,
+    ...type.caption,
+    color: colors.textMuted,
   },
   statValue: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontWeight: "700",
+    ...type.bodyStrong,
+    color: colors.text,
+    fontVariant: ["tabular-nums"],
   },
   divider: {
     width: 1,
     height: 24,
-    backgroundColor: "#4d4d4d",
+    backgroundColor: colors.border,
   },
-
-  // STATUS PILL
-  statusPill: {
+  pill: {
     marginLeft: "auto",
-    borderWidth: 1,
-    borderRadius: 9999,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
   },
-  statusText: {
-    fontSize: 9,
-    fontWeight: "700",
-    letterSpacing: 1.4,
-  },
-});
+}));
