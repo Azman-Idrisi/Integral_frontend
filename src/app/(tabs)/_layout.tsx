@@ -45,6 +45,20 @@ export default function TabLayout() {
         />
 
         <Tabs.Screen
+          name="seating"
+          options={{
+            title: "Seating plan",
+            tabBarIcon: ({ color, focused, size }) => (
+              <Ionicons
+                name={focused ? "grid" : "grid-outline"}
+                size={size}
+                color={color}
+              />
+            ),
+          }}
+        />
+
+        <Tabs.Screen
           name="profile"
           options={{
             title: "Profile",

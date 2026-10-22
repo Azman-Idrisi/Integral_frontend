@@ -143,11 +143,7 @@ export default function ProfileScreen() {
 
           <ProfileItem label="Date of birth" value={profile.txtDOB} />
           <ProfileItem label="Branch" value={profile.txtBranch} />
-          <ProfileItem label="Semester" value={profile.txtSemester} />
-          <ProfileItem label="Father's name" value={profile.txtFatherName} />
-          <ProfileItem label="Mother's name" value={profile.txtMotherName} />
-          <ProfileItem label="Category" value={profile.txtCategory} />
-          <ProfileItem label="Annual income" value={profile.txtIncome} last />
+          <ProfileItem label="Semester" value={profile.txtSemester} last />
         </Card>
 
         {/* APPEARANCE */}

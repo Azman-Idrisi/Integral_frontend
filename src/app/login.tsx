@@ -21,7 +21,28 @@ import IndependenceLine from "../components/IndependenceLine";
 import Screen from "../components/Screen";
 import { api } from "../services/api";
 import { useAuthStore } from "../store/authStore";
+import { formatSavedAt, useTimetableStore } from "../store/timetableStore";
 import { createStyles, radius, space, type, useTheme } from "../theme";
+
+// Refreshes the saved timetable on every Sign-in, without holding up
+// navigation. The Timetable tab saves it again whenever it loads.
+const refreshSavedTimetable = async (userId: string) => {
+  const { saved, save, clear } = useTimetableStore.getState();
+  try {
+    const response = await api.get("/timetable");
+    save({
+      userId,
+      session: response.data.timetable?.session || "",
+      days: response.data.timetable?.days || [],
+      savedAt: Date.now(),
+    });
+  } catch {
+    // Never leave another student's timetable on the login screen.
+    if (saved && saved.userId !== userId) {
+      clear();
+    }
+  }
+};
 
 export default function LoginScreen() {
   const styles = useStyles();
@@ -41,6 +62,7 @@ export default function LoginScreen() {
   const setAuth = useAuthStore((state) => state.setAuth);
   const authToken = useAuthStore((state) => state.authToken);
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
+  const savedTimetable = useTimetableStore((state) => state.saved);
 
   const fetchCaptcha = async () => {
     try {
@@ -98,6 +120,7 @@ export default function LoginScreen() {
         password
       );
       setAuth(response.data.userId, response.data.authToken);
+      refreshSavedTimetable(response.data.userId);
       router.replace("/(tabs)");
     } catch (err: any) {
       Alert.alert("Error", err?.response?.data?.error || "Sign-in failed");
@@ -206,6 +229,21 @@ export default function LoginScreen() {
                 style={styles.loginBtn}
               />
 
+              {savedTimetable && (
+                <View style={styles.savedTimetable}>
+                  <CustomButton
+                    variant="secondary"
+                    icon="time-outline"
+                    title="View saved timetable"
+                    onPress={() => router.push("/saved-timetable")}
+                  />
+                  <Text style={styles.savedTimetableHint}>
+                    Saved {formatSavedAt(savedTimetable.savedAt)}. Sign in
+                    to check for updates to your timetable.
+                  </Text>
+                </View>
+              )}
+
             </View>
 
           </View>
@@ -296,6 +334,17 @@ const useStyles = createStyles(({ colors }) => ({
 
   loginBtn: {
     marginTop: space.sectionGap,
+  },
+
+  // SAVED TIMETABLE
+  savedTimetable: {
+    marginTop: 12,
+    gap: 8,
+  },
+  savedTimetableHint: {
+    ...type.footnote,
+    color: colors.textMuted,
+    textAlign: "center",
   },
 
   independence: {

@@ -2,7 +2,7 @@
 
 The design system for the Integral Student Portal app: an Apple Liquid Glass–inspired look with light and dark themes, built from a small five-color palette.
 
-The restyle keeps the existing screens, layouts and navigation (login plus three tabs). It changes color, materials, shape, type, and the tab bar. **Migration from the original UI** at the end records what changed from the first version of the app.
+The restyle keeps the existing screens, layouts and navigation (login plus four tabs). It changes color, materials, shape, type, and the tab bar. **Migration from the original UI** at the end records what changed from the first version of the app.
 
 Product vocabulary (Attendance Standing, Enrollment Number, Academic Session, Sign-in) is defined in `../../GLOSSARY.md`. On-screen text uses those terms.
 
@@ -195,7 +195,7 @@ Both use `boxShadow`, not Android `elevation`. `boxShadow` is drawn only outside
 
 A custom tab bar that looks the same on Android and iOS. It is not Expo's `NativeTabs`; see `docs/adr/0001-custom-glass-tab-bar.md`.
 - **Shape:** a glass capsule (`9999`), 64 tall, inset 16 from the left and right edges. Its bottom sits 8 above the bottom safe-area inset. It uses Floating elevation and stays visible while scrolling.
-- **Tabs:** Attendance, Timetable and Profile, laid out with equal widths. Each has a 22px Ionicons icon (filled when active, outline when inactive) above a sentence-case tab label.
+- **Tabs:** Attendance, Timetable, Seating plan and Profile, laid out with equal widths. Each has a 22px Ionicons icon (filled when active, outline when inactive) above a sentence-case tab label.
 - **Selector:** a capsule inset 4 inside the bar, with `selector-fill`, a glass edge and `glass-ring`. It slides to the selected tab with a Reanimated spring and stretches along the direction of travel. While a tab is pressed, it lifts (scales up 6%).
   - The active icon and label use `text`. Inactive ones use `text-muted`.
 - **Haptics:** a selection haptic on press (`expo-haptics`).
@@ -232,6 +232,7 @@ Used for Appearance on Profile, with an icon and a label per option: System (pho
   - No card: the form sits directly on the screen background, within the 20 gutter, centered vertically.
   - The app icon (88, radius 20) sits above the app name (Headline). Below them come the "Sign in" title, the subtitle, the Enrollment Number, Password and Captcha fields, and the primary button.
   - A "Continue as …" secondary button appears when saved credentials exist.
+  - When a saved timetable exists, a "View saved timetable" secondary button (clock icon) sits under "Sign in". Under it, centered Footnote `text-muted` text reads "Saved <date, time>. Sign in to check for updates to your timetable."
   - The independence line is pinned to the bottom of the screen.
 - **Attendance:**
   - **Overall card:** a regular translucent card, like the subject cards. It shows the "CUMULATIVE" overline (`text-muted`), the percentage in Display style, the Standing word (Headline, `text`), and a ring in the Standing color holding a Standing icon (checkmark for Safe, alert for Borderline, close for Short). The percentage and icon use the Standing color in dark and `text` in light.
@@ -243,6 +244,14 @@ Used for Appearance on Profile, with an icon and a label per option: System (pho
   - An info pill shows the Academic Session.
   - Sticky day headers are glass capsules that hug the day name, in Headline style.
   - Each slot card has a `surface-raised` period column flush with the card's left edge (Headline-style number in `text`, "PERIOD" overline). Next to it are the time (Footnote mono, `text-muted`) and the subjects (Body strong).
+- **Seating plan:**
+  - Shows the exam seat SMS has published (`frmStuSeatPlan.aspx`), which is one exam at a time. Pull-to-refresh.
+  - **Exam card:** "EXAM" overline, the course name (Headline), a mono info pill with the course code, then calendar and clock rows (Callout 600, `text-muted` icons) for the date and timing.
+  - **Seat card:** "WHERE TO SIT" overline, three `surface-raised` blocks (radius 16) for Block, Floor and Room (overline label, Title value), and a Seat colour row below. The seat colour is shown as text only, never a swatch, because the palette has no other colors.
+  - **No plan:** while SMS shows only "---", a centered card holds a `grid-outline` icon, "No seating plan available yet." (Headline) and a Footnote `text-subtle` hint to pull down and check again.
+- **Saved timetable** (`saved-timetable.tsx`, opened from login, no Sign-in needed):
+  - The timetable from the last Sign-in, saved on the device. Every Sign-in and every Timetable tab load replaces it, and it survives log out.
+  - It looks like the Timetable tab, minus the tab bar, with a back icon button at the top left. Under the session pill, a list card holds an info icon and Footnote `text-muted` text: "Saved <date, time>. Sign in to check for updates to your timetable."
 - **Profile:**
   - Hero card: the photo, the name (Headline), an Enrollment Number info pill, and the ABC ID (Footnote mono, `text-muted`).
   - A grouped details card with label (`text-muted`) and value (`text`, 600) rows separated by `border` hairlines.
@@ -250,7 +259,7 @@ Used for Appearance on Profile, with an icon and a label per option: System (pho
 
 ### Loading, empty and error states
 
-- **Loading:** a centered `accent-ink` spinner with Footnote `text-muted` text ("Loading attendance…").
+- **Loading:** a centered `accent-ink` spinner with Footnote `text-muted` text ("Loading attendance…", "Loading seating plan…").
 - **Empty:** Callout `text-subtle`.
 - **Error:** a `danger` icon with a `text` message, plus a secondary "Try again" button.
 - **Sign-in expired:** "Your sign-in expired. Please sign in again."

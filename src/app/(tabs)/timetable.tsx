@@ -1,36 +1,21 @@
 import { useEffect, useState } from "react";
-import {
-  RefreshControl,
-  SectionList,
-  Text,
-  View,
-} from "react-native";
-import Card from "../../components/Card";
-import Glass from "../../components/Glass";
+import { RefreshControl } from "react-native";
 import { useTabBarClearance } from "../../components/GlassTabBar";
-import { InfoPill } from "../../components/Pill";
 import Screen from "../../components/Screen";
-import { EmptyState, ErrorState, LoadingState } from "../../components/StateView";
+import { ErrorState, LoadingState } from "../../components/StateView";
+import TimetableList from "../../components/TimetableList";
 import { api } from "../../services/api";
 import { useAuthStore } from "../../store/authStore";
-import { createStyles, font, radius, space, type, useTheme } from "../../theme";
-
-type TimetableSlot = {
-  period: number;
-  time: string;
-  subjects: string[];
-};
-
-type TimetableDay = {
-  day: string;
-  slots: TimetableSlot[];
-};
+import { useTimetableStore } from "../../store/timetableStore";
+import { useTheme } from "../../theme";
+import type { TimetableDay } from "../../types/timetable";
 
 export default function TimetableScreen() {
-  const styles = useStyles();
   const { colors } = useTheme();
   const clearance = useTabBarClearance();
   const authToken = useAuthStore((state) => state.authToken);
+  const userId = useAuthStore((state) => state.userId);
+  const saveTimetable = useTimetableStore((state) => state.save);
   const [session, setSession] = useState("");
   const [days, setDays] = useState<TimetableDay[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,8 +27,12 @@ export default function TimetableScreen() {
     try {
       setError(false);
       const response = await api.get("/timetable");
-      setSession(response.data.timetable?.session || "");
-      setDays(response.data.timetable?.days || []);
+      const nextSession = response.data.timetable?.session || "";
+      const nextDays = response.data.timetable?.days || [];
+      setSession(nextSession);
+      setDays(nextDays);
+      // Keep the saved copy for the login screen current.
+      saveTimetable({ userId, session: nextSession, days: nextDays, savedAt: Date.now() });
     } catch (err) {
       console.log(err);
       setError(true);
@@ -76,63 +65,12 @@ export default function TimetableScreen() {
     );
   }
 
-  const sections = days
-    .filter((d) => d.slots.length > 0)
-    .map((d) => ({ title: d.day, data: d.slots }));
-
   return (
     <Screen>
-      <SectionList
-        sections={sections}
-        keyExtractor={(item, index) => `${item.period}-${index}`}
-        stickySectionHeadersEnabled
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.listContent, { paddingBottom: clearance }]}
-
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.pageTitle}>Timetable</Text>
-            {session ? (
-              <InfoPill>Academic Session {session}</InfoPill>
-            ) : (
-              <Text style={styles.pageSubtitle}>Current semester schedule</Text>
-            )}
-          </View>
-        }
-
-        renderSectionHeader={({ section: { title } }) => (
-          <View style={styles.sectionHeader}>
-            <Glass style={styles.sectionHeaderGlass}>
-              <Text style={styles.sectionHeaderText}>{title}</Text>
-            </Glass>
-          </View>
-        )}
-
-        renderItem={({ item }) => (
-          <Card style={styles.slotCard}>
-            {/* LEFT — period indicator */}
-            <View style={styles.slotLeft}>
-              <Text style={styles.periodNum}>{item.period}</Text>
-              <Text style={styles.periodLabel}>Period</Text>
-            </View>
-
-            {/* RIGHT — time + subjects */}
-            <View style={styles.slotRight}>
-              {item.time ? (
-                <Text style={styles.slotTime}>
-                  {/* SMS gives "09:50 AM -10:40 AM". */}
-                  {item.time.replace(/\s*-\s*/, " – ")}
-                </Text>
-              ) : null}
-              {item.subjects.map((subject, i) => (
-                <Text key={i} style={styles.subjectText}>
-                  {subject}
-                </Text>
-              ))}
-            </View>
-          </Card>
-        )}
-
+      <TimetableList
+        days={days}
+        session={session}
+        paddingBottom={clearance}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -142,83 +80,7 @@ export default function TimetableScreen() {
             progressBackgroundColor={colors.surfaceSolid}
           />
         }
-
-        ListEmptyComponent={<EmptyState label="No timetable to show yet." />}
       />
     </Screen>
   );
 }
-
-const useStyles = createStyles(({ colors }) => ({
-  listContent: {
-    paddingHorizontal: space.gutter,
-    paddingTop: space.gutter,
-  },
-
-  // HEADER
-  header: {
-    gap: 8,
-    marginBottom: 12,
-  },
-  pageTitle: {
-    ...type.largeTitle,
-    color: colors.text,
-  },
-  pageSubtitle: {
-    ...type.footnote,
-    color: colors.textMuted,
-  },
-
-  // SECTION HEADER
-  sectionHeader: {
-    paddingVertical: 12,
-    alignItems: "flex-start",
-  },
-  sectionHeaderGlass: {
-    borderRadius: radius.capsule,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  sectionHeaderText: {
-    ...type.headline,
-    color: colors.text,
-  },
-
-  // SLOT CARD
-  slotCard: {
-    marginBottom: space.cardGap,
-    flexDirection: "row",
-    overflow: "hidden",
-  },
-  slotLeft: {
-    width: 72,
-    backgroundColor: colors.surfaceRaised,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: space.listCard,
-    gap: 2,
-  },
-  periodNum: {
-    ...type.headline,
-    color: colors.text,
-    fontVariant: ["tabular-nums"],
-  },
-  periodLabel: {
-    ...type.overline,
-    color: colors.textMuted,
-  },
-  slotRight: {
-    flex: 1,
-    padding: space.listCard,
-    gap: 4,
-  },
-  slotTime: {
-    ...type.footnote,
-    ...font.mono,
-    color: colors.textMuted,
-  },
-  subjectText: {
-    ...type.bodyStrong,
-    color: colors.text,
-  },
-}));
