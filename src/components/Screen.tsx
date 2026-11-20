@@ -1,9 +1,10 @@
 import { BlurTargetView } from "expo-blur";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useRef, type ReactNode } from "react";
-import { View, useWindowDimensions } from "react-native";
+import { Text, View, useWindowDimensions } from "react-native";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
-import { createStyles, useTheme } from "../theme";
+import { useAuthStore } from "../store/authStore";
+import { createStyles, type, useTheme } from "../theme";
 import { InsideScreen, useSetBlurTarget } from "./Glass";
 
 // Off-canvas orb positions, as fractions of the window width.
@@ -33,6 +34,7 @@ export default function Screen({
   const { width } = useWindowDimensions();
   const ref = useRef<View>(null);
   const setBlurTarget = useSetBlurTarget();
+  const isDemo = useAuthStore((state) => state.userId === "demo");
 
   useFocusEffect(
     useCallback(() => {
@@ -64,6 +66,11 @@ export default function Screen({
       })}
 
       <SafeAreaView edges={edges} style={styles.safe}>
+        {isDemo && (
+          <Text style={styles.demo} accessibilityRole="text">
+            Demo account, sample data
+          </Text>
+        )}
         <InsideScreen value>{children}</InsideScreen>
       </SafeAreaView>
     </BlurTargetView>
@@ -81,5 +88,11 @@ const useStyles = createStyles(({ colors }) => ({
   },
   safe: {
     flex: 1,
+  },
+  demo: {
+    ...type.footnote,
+    color: colors.textMuted,
+    textAlign: "center",
+    paddingVertical: 4,
   },
 }));

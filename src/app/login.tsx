@@ -99,7 +99,8 @@ export default function LoginScreen() {
   }, [hasHydrated, authToken]);
 
   const handleLogin = async () => {
-    if (!username || !password || !captcha) {
+    // Captcha is checked by the server; the demo review account has none.
+    if (!username || !password) {
       return Alert.alert("Error", "Please fill all fields");
     }
     try {

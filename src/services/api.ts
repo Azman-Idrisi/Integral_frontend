@@ -2,15 +2,13 @@ import axios from "axios";
 
 import { router } from "expo-router";
 
-import { useAuthStore }
-  from "../store/authStore";
-
+import { useAuthStore } from "../store/authStore";
 export const api =
   axios.create({
     baseURL:
       "https://integral-backend.vercel.app",
+    // "http://192.168.29.19:3000/",
   });
-
 api.interceptors.request.use(
   (config) => {
     const token =
